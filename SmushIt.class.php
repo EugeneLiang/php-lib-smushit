@@ -45,12 +45,12 @@ class SmushIt
 		}
 
 		if (is_array($path)) {
-			array_map(function($location) {
-				$smushit = new SmushIt($location, $this->flags);
-				array_map(function($single) {
-					$this->items[] = $single;
-				}, $smushit->get());
-			}, $path);
+			foreach($path as $location) {
+				$smushit = new SmushIt($location, $flags);
+				foreach($smushit->get() as $item) {
+					$this->items[] = $item;
+				}
+			}
 		} else if (is_string($path)) {
 			$this->smush($path);
 		}
