@@ -119,7 +119,6 @@ class SmushIt
 		}
 
 		$this->error = empty($response->error) ? null : $response->error;
-		$this->source = empty($response->src) ? $this->source : urldecode($response->src);
 		$this->destination = empty($response->dest) ? null : $response->dest;
 		$this->sourceSize = empty($response->src_size) ? null : intval($response->src_size);
 		$this->destinationSize = empty($response->dest_size) ? null : intval($response->dest_size);
