@@ -2,14 +2,17 @@
 
 class SmushIt
 {
+	const KEEP_ERRORS
+		= 0x01;
+
+	const THROW_EXCEPTION
+		= 0x02;
+
 	const SERVICE_API_URL
 		= "http://www.smushit.com/ysmush.it/ws.php";
 
 	const SERVICE_API_LIMIT
 		= 1048576; // 1MB limitation
-
-	private static $extensions
-		= array('jpg', 'jpeg', 'png', 'gif');
 
 	public $error;
 
@@ -23,19 +26,27 @@ class SmushIt
 
 	public $savings;
 
+	private $flags = null;
+
 	private $items = array();
 
-	public function __construct($path)
+	public function __construct($path, $flags = null)
 	{
+		$this->flags = $flags;
+
 		if (empty($path)) {
-			throw new InvalidArgumentException(
-				'In SmushIt::__construct(): parameter can\'t be empty'
-			);
+			if ($this->hasFlag(self::THROW_EXCEPTION)) {
+				throw new InvalidArgumentException(
+					'In SmushIt::__construct(): parameter can\'t be empty'
+				);
+			}
+
+			return;
 		}
 
 		if (is_array($path)) {
 			array_map(function($location) {
-				$smushit = new SmushIt($location);
+				$smushit = new SmushIt($location, $this->flags);
 				array_map(function($single) {
 					$this->items[] = $single;
 				}, $smushit->get());
@@ -47,7 +58,20 @@ class SmushIt
 
 	public function get()
 	{
-		return $this->items;
+		if ($this->hasFlag(self::KEEP_ERRORS)) {
+			return $this->items;
+		}
+
+		return array_filter(array_map(function($item) {
+			if (empty($item->error)) {
+				return $item;
+			}
+		}, $this->items));
+	}
+
+	private function hasFlag($flag)
+	{
+		return (bool)($this->flags & $flag);
 	}
 
 	private function smush($path)
@@ -68,6 +92,7 @@ class SmushIt
 			if ($isRemote) {
 				curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL . '?img=' . $path);
 			} else {
+				curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL);
 				curl_setopt($handle, CURLOPT_POST, true);
 				curl_setopt($handle, CURLOPT_POSTFIELDS, array('files' => '@' . $path));
 			}
@@ -101,10 +126,3 @@ class SmushIt
 		$this->savings = empty($response->percent) ? null : floatval($response->percent);
 	}
 }
-
-// $j = new SmushIt(array(
-// 	'http://freedomwallpaper.com/wallpaper_hd/apple_wallpaper.jpg',
-// 	'http://mintyferret.com/wp-content/uploads/2007/07/lolcat7.gif'
-// 	// 'http://ysmushit.zenfs.com/results/4e0c2a9a%2Fsmush%2Fgoogle-buzz-e1265748634462.jpg'
-// ));
-// var_dump($j->get());
