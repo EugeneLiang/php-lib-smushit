@@ -8,6 +8,12 @@ class SmushIt
 	const THROW_EXCEPTION
 		= 0x02;
 
+	const LOCAL_ORIGIN
+		= 0x04;
+
+	const REMOTE_ORIGIN
+		= 0x08;
+
 	const SERVICE_API_URL
 		= "http://www.smushit.com/ysmush.it/ws.php";
 
@@ -30,57 +36,74 @@ class SmushIt
 
 	private $items = array();
 
-	public function __construct($path, $flags = null)
+	public function __construct($sources, $flags = null)
 	{
 		$this->flags = $flags;
+		$sources = $this->clean($sources);
 
-		if (empty($path)) {
-			if ($this->hasFlag(self::THROW_EXCEPTION)) {
-				throw new InvalidArgumentException(
-					'In SmushIt::__construct(): parameter can\'t be empty'
-				);
+		if (is_string($sources)) {
+			if ($this->check($sources)) {
+				$this->smush();
 			}
-
-			return;
-		}
-
-		if (is_array($path)) {
-			foreach($path as $location) {
-				$smushit = new SmushIt($location, $flags);
-				foreach($smushit->get() as $item) {
-					$this->items[] = $item;
+		} else {
+			foreach($sources as $source) {
+				$smush = new SmushIt($source, $flags);
+				$smushResult = $smush->get();
+				if (!empty($smushResult)) {
+					$this->items[] = $smushResult;
 				}
 			}
-		} else if (is_string($path)) {
-			$this->smush($path);
 		}
 	}
 
 	public function get()
 	{
-		if ($this->hasFlag(self::KEEP_ERRORS)) {
-			return $this->items;
+		return $this->items;
+	}
+
+	private function clean($sources)
+	{
+		if (is_array($sources)) {
+			$clean = array();
+			array_walk_recursive($sources, function($line) use (&$clean) {
+				$clean[] = $line;
+			});
+			$sources = array_filter(array_map(function($line) {
+				if (!empty($line) AND is_string($line)) {
+					return $line;
+				}
+			}, array_unique($clean)));
+		} else if (!is_string($sources)) {
+			$sources = null;
 		}
 
-		return array_filter(array_map(function($item) {
-			if (empty($item->error)) {
-				return $item;
-			}
-		}, $this->items));
+		if (empty($sources) AND $this->hasFlag(self::THROW_EXCEPTION)) {
+			throw new InvalidArgumentException('Sources can\'t be empty');
+		}
+
+		return $sources;
 	}
 
 	private function check($path)
 	{
-		$isRemote = filter_var($path, FILTER_VALIDATE_URL) !== false;
-		$isLocal = (!$isRemote AND file_exists($path) AND !is_dir($path));
-
-		if (!$isLocal AND !$isRemote) {
+		if ($this->setSource($path) === false) {
 			$this->error = "$path is not a valid path";
-			return;
-		} else if ($isLocal AND !is_readable($path)) {
-			$this->error = "$path is not readable";
-		} else if ($isLocal AND filesize($path) > self::SERVICE_API_LIMIT)
-			$this->error = "Image size exceeds 1MB limit";
+		} else if ($this->hasFlag(self::LOCAL_ORIGIN)) {
+			if (!is_readable($path)) {
+				$this->error = "$path is not readable";
+			} else if(filesize($path) > self::SERVICE_API_LIMIT) {
+				$this->error = "$path exceeds 1MB size limit";
+			}
+		}
+
+		if (!empty($this->error)) {
+			if ($this->hasFlag(self::THROW_EXCEPTION)) {
+				throw new Exception($this->error);
+			}
+			return false;
+		}
+
+		return true;
 	}
 
 	private function hasFlag($flag)
@@ -88,48 +111,59 @@ class SmushIt
 		return (bool)($this->flags & $flag);
 	}
 
-	private function smush($path)
+	private function setSource($source)
 	{
-		if (!$this->check($path)) {
-			return;
+		$this->source = $source;
+		if (filter_var($this->source, FILTER_VALIDATE_URL) !== false) {
+			$this->flags |= self::REMOTE_ORIGIN;
+		} else if (file_exists($this->source) AND !is_dir($this->source)) {
+			$this->flags |= self::LOCAL_ORIGIN;
+		} else {
+			return false;
 		}
+	}
 
+	private function smush()
+	{
 		$handle = curl_init();
 		curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 5);
-
-		if (filter_var($path, FILTER_VALIDATE_URL) !== false) {
-			curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL . '?img=' . $path);
-		} else {
+		if ($this->hasFlag(self::LOCAL_ORIGIN)) {
 			curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL);
 			curl_setopt($handle, CURLOPT_POST, true);
-			curl_setopt($handle, CURLOPT_POSTFIELDS, array('files' => '@' . $path));
+			curl_setopt($handle, CURLOPT_POSTFIELDS, array('files' => '@' . $this->source));
+		} else {
+			curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL . '?img=' . $this->source);
 		}
-
-		$this->source = $path;
 		$json = curl_exec($handle);
-		curl_close($handle);
+		if ($json === false) {
+			if (self::hasFlag(self::THROW_EXCEPTION)) {
+				throw new Exception('Curl error: ' . curl_error());
+			}
+			return;
+		}
 		$this->set($json);
-
-		$this->items[] = $this;
 	}
 
 	private function set($json)
 	{
-		try {
-			$response = json_decode($json);
-			if (empty($response)) {
+		$response = json_decode($json);
+		if (empty($response)) {
+			if (self::hasFlag(self::THROW_EXCEPTION)) {
 				throw new Exception('Empty JSON response');
 			}
-		} catch(Exception $e) {
-			$this->error = 'An error occured during JSON deserialization: ' . $e->getMessage();
 			return;
 		}
-
-		$this->error = empty($response->error) ? null : $response->error;
+		$this->error = empty($response->error) ? $this->error : $response->error;
 		$this->destination = empty($response->dest) ? null : $response->dest;
 		$this->sourceSize = empty($response->src_size) ? null : intval($response->src_size);
 		$this->destinationSize = empty($response->dest_size) ? null : intval($response->dest_size);
 		$this->savings = empty($response->percent) ? null : floatval($response->percent);
+
+		if (!empty($this->error) AND $this->hasFlag(self::THROW_EXCEPTION)) {
+			throw new Exception($this->error);
+		} else if (empty($this->error) OR $this->hasFlag(self::KEEP_ERRORS)) {
+			$this->items[] = $this;
+		}
 	}
 }
