@@ -69,12 +69,7 @@ class SmushIt
 		}, $this->items));
 	}
 
-	private function hasFlag($flag)
-	{
-		return (bool)($this->flags & $flag);
-	}
-
-	private function smush($path)
+	private function check($path)
 	{
 		$isRemote = filter_var($path, FILTER_VALIDATE_URL) !== false;
 		$isLocal = (!$isRemote AND file_exists($path) AND !is_dir($path));
@@ -86,24 +81,35 @@ class SmushIt
 			$this->error = "$path is not readable";
 		} else if ($isLocal AND filesize($path) > self::SERVICE_API_LIMIT)
 			$this->error = "Image size exceeds 1MB limit";
-		} else {
-			$handle = curl_init();
-			curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
-			curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 5);
+	}
 
-			if ($isRemote) {
-				curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL . '?img=' . $path);
-			} else {
-				curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL);
-				curl_setopt($handle, CURLOPT_POST, true);
-				curl_setopt($handle, CURLOPT_POSTFIELDS, array('files' => '@' . $path));
-			}
+	private function hasFlag($flag)
+	{
+		return (bool)($this->flags & $flag);
+	}
 
-			$this->source = $path;
-			$json = curl_exec($handle);
-			curl_close($handle);
-			$this->set($json);
+	private function smush($path)
+	{
+		if (!$this->check($path)) {
+			return;
 		}
+
+		$handle = curl_init();
+		curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt($handle, CURLOPT_CONNECTTIMEOUT, 5);
+
+		if (filter_var($path, FILTER_VALIDATE_URL) !== false) {
+			curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL . '?img=' . $path);
+		} else {
+			curl_setopt($handle, CURLOPT_URL, self::SERVICE_API_URL);
+			curl_setopt($handle, CURLOPT_POST, true);
+			curl_setopt($handle, CURLOPT_POSTFIELDS, array('files' => '@' . $path));
+		}
+
+		$this->source = $path;
+		$json = curl_exec($handle);
+		curl_close($handle);
+		$this->set($json);
 
 		$this->items[] = $this;
 	}
