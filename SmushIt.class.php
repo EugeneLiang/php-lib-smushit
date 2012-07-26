@@ -84,6 +84,8 @@ class SmushIt
 			return;
 		} else if ($isLocal AND !is_readable($path)) {
 			$this->error = "$path is not readable";
+		} else if ($isLocal AND filesize($path) > self::SERVICE_API_LIMIT)
+			$this->error = "Image size exceeds 1MB limit";
 		} else {
 			$handle = curl_init();
 			curl_setopt($handle, CURLOPT_RETURNTRANSFER, 1);
