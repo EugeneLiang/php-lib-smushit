@@ -1,41 +1,111 @@
 <?php
 
+/**
+ * Smush.it PHP Library, a simple PHP library for accessing the Yahoo! Smush.it™
+ * lossless image compressor
+ * @author  Ghislain PHU <contact@ghislainphu.fr>
+ * @version 1.0
+ */
 class SmushIt
 {
-	const KEEP_ERRORS
-		= 0x01;
+	/**
+	 * Flag used to preserve objects with errors
+	 */
+	const KEEP_ERRORS = 0x01;
 
-	const THROW_EXCEPTION
-		= 0x02;
+	/**
+	 * Flag used to throw exceptions when an error
+	 * occurred
+	 */
+	const THROW_EXCEPTION = 0x02;
 
-	const LOCAL_ORIGIN
-		= 0x04;
+	/**
+	 * Internal flag used to notify that the current
+	 * source is a local file
+	 */
+	const LOCAL_ORIGIN = 0x04;
 
-	const REMOTE_ORIGIN
-		= 0x08;
+	/**
+	 * Internal flag used to notify that the current
+	 * source is a remote file (source is an URL)
+	 */
+	const REMOTE_ORIGIN = 0x08;
 
-	const SERVICE_API_URL
-		= "http://www.smushit.com/ysmush.it/ws.php";
+	/**
+	 * The base URL of the Yahoo! Smush.it™ API
+	 */
+	const SERVICE_API_URL = "http://www.smushit.com/ysmush.it/ws.php";
 
-	const SERVICE_API_LIMIT
-		= 1048576; // 1MB limitation
+	/**
+	 * Maximum filesize allowed by Yahoo! Smush.it™ API
+	 */
+	const SERVICE_API_LIMIT = 1048576; // 1MB limitation
 
+	/**
+	 * Error message
+	 * @access public
+	 * @var string | null
+	 */
 	public $error;
 
+	/**
+	 * Source URI
+	 * @access public
+	 * @var string | null
+	 */
 	public $source;
 
+	/**
+	 * Compressed image URL
+	 * @access public
+	 * @var string | null
+	 */
 	public $destination;
 
+	/**
+	 * Filesize of the source image (in Bytes)
+	 * @access public
+	 * @var int | null
+	 */
 	public $sourceSize;
 
+	/**
+	 * Filesize of the compressed image (in Bytes)
+	 * @access public
+	 * @var int | null
+	 */
 	public $destinationSize;
 
+	/**
+	 * Saving percentage
+	 * @access public
+	 * @var float | null
+	 */
 	public $savings;
 
+	/**
+	 * Effective flags
+	 * @access private
+	 * @var int | null
+	 */
 	private $flags = null;
 
+	/**
+	 * Array of SmushIt objects
+	 * @access private
+	 * @var array
+	 */
 	private $items = array();
 
+	/**
+	 * Smush.it constructor
+	 * @access public
+	 * @param  array | string           $sources List of files to compress
+	 * @param  int                      $flags   List of flags
+	 * @return object
+	 * @see    SmushIt::KEEP_ERRORS
+	 * @see    SmushIt::THROW_EXCEPTION
+	 */
 	public function __construct($sources, $flags = null)
 	{
 		$this->flags = $flags;
@@ -56,11 +126,25 @@ class SmushIt
 		}
 	}
 
+	/**
+	 * Return the list of SmushIt objects
+	 * @access public
+	 * @return array
+	 * @see    SmushIt::$items
+	 */
 	public function get()
 	{
 		return $this->items;
 	}
 
+	/**
+	 * Clean the $sources parameter from SmushIt::__construct()
+	 * (flatten array and remove non-string values)
+	 * @access private
+	 * @param  string | array           $sources List of files to compress
+	 * @return string | array
+	 * @throws InvalidArgumentException
+	 */
 	private function clean($sources)
 	{
 		if (is_array($sources)) {
@@ -84,6 +168,13 @@ class SmushIt
 		return $sources;
 	}
 
+	/**
+	 * Check if source is a readable local file and doesn't exceed filesize limit
+	 * @access private
+	 * @param  string    $path Location of the current image to compress
+	 * @return bool
+	 * @throws Exception
+	 */
 	private function check($path)
 	{
 		if ($this->setSource($path) === false) {
@@ -106,11 +197,23 @@ class SmushIt
 		return true;
 	}
 
+	/**
+	 * Check if the flag $flag is set in the current object
+	 * @access private
+	 * @param  int  $flag The flag to check
+	 * @return bool
+	 */
 	private function hasFlag($flag)
 	{
 		return (bool)($this->flags & $flag);
 	}
 
+	/**
+	 * Set SmushIt::$source and check if it's a local or remote file
+	 * @access private
+	 * @param  string $flag The source to set
+	 * @return false | null
+	 */
 	private function setSource($source)
 	{
 		$this->source = $source;
@@ -123,6 +226,11 @@ class SmushIt
 		}
 	}
 
+	/**
+	 * Send current source to the API and get response
+	 * @access private
+	 * @throws Exception
+	 */
 	private function smush()
 	{
 		$handle = curl_init();
@@ -145,6 +253,11 @@ class SmushIt
 		$this->set($json);
 	}
 
+	/**
+	 * Set API response data to the current object
+	 * @access private
+	 * @throws Exception
+	 */
 	private function set($json)
 	{
 		$response = json_decode($json);
