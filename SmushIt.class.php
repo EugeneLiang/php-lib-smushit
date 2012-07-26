@@ -246,7 +246,7 @@ class SmushIt
 		$json = curl_exec($handle);
 		if ($json === false) {
 			if (self::hasFlag(self::THROW_EXCEPTION)) {
-				throw new Exception('Curl error: ' . curl_error());
+				throw new Exception('Curl error: ' . curl_error($handle));
 			}
 			return;
 		}
