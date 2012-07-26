@@ -2,6 +2,11 @@
 
 A simple PHP library for accessing the [Yahoo! Smush.it™](http://www.smushit.com/ysmush.it/) lossless image compressor.
 
+## Requirements
+
+- PHP version 5.3 ([closures](http://php.net/manual/fr/functions.anonymous.php) in SmushIt::clean())
+- PHP [cURL extension](http://php.net/manual/en/book.curl.php) (Client URL Library)
+
 ## Basic usage
 
 Using Yahoo! Smush.it™ to compress a single local file.
@@ -91,3 +96,13 @@ This code sample demonstrates how to compress all `.jpg` files from a directory 
             continue;
         }
     }
+
+## License
+
+Copyright (C) 2012 Ghislain PHU <contact@ghislainphu.fr>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
