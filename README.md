@@ -4,7 +4,7 @@ A simple PHP library for accessing the [Yahoo! Smush.it™](http://www.smushit.c
 
 ## Requirements
 
-- PHP version 5.3 ([closures](http://php.net/manual/fr/functions.anonymous.php) in SmushIt::clean())
+- PHP version 5.3 ([closures](http://php.net/manual/en/functions.anonymous.php) in SmushIt::clean())
 - PHP [cURL extension](http://php.net/manual/en/book.curl.php) (Client URL Library)
 
 ## Basic usage
