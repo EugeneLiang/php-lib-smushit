@@ -20,8 +20,8 @@ Using Yahoo! Smush.it™ to compress a single remote file.
 Using Yahoo! Smush.it™ to compress multiple files at once.
 
     $smushit = new SmushIt(array(
-    	'/path/to/image.png',
-    	'http://example.org/image.jpg'
+        '/path/to/image.png',
+        'http://example.org/image.jpg'
     ));
 
 Get "Smushed images".
@@ -42,60 +42,79 @@ Get "Smushed images".
 
 Smush.it PHP Library removes SmushIt objects from get() method result when an error occured during compression process (including "no savings", "image size exceeds 1MB", etc). You can keep these results in get() array by passing `SmushIt::KEEP_ERRORS` flag to SmushIt constructor.
 
-    $images = array(
-        'http://example.org/image.jpg',
-        'http://example.org/broken-link.jpg'
-    );
+```php
+<?php
 
-    $default = new SmushIt($images);
-    $keepErr = new SmushIt($images, SmushIt::KEEP_ERRORS);
+$images = array(
+    'http://example.org/image.jpg',
+    'http://example.org/broken-link.jpg'
+);
 
-    count($default->get()); // Value: 1
-    count($keepErr->get()); // Value: 2
+$default = new SmushIt($images);
+$keepErr = new SmushIt($images, SmushIt::KEEP_ERRORS);
+
+count($default->get()); // Value: 1
+count($keepErr->get()); // Value: 2
+
+?>
+```
 
 PHP SmushIt Library can throw exception when an error occured.
 
+```php
+<?php
+
+$smushit = new SmushIt(array(
+    'http://example.org/image.jpg',
     // InvalidArgumentException when calling SmushIt::__construct() with empty $path argument.
-    $smushit = new SmushIt(array(
-        'http://example.org/image.jpg',
-        '', // Throw InvalidArgumentException
-        'http://example.org/another-image.jpg' // This image will never be subjected to the API
-    ), SmushIt::THROW_EXCEPTION);
+    '',
+    // This image will never be subjected to the API
+    'http://example.org/another-image.jpg'
+), SmushIt::THROW_EXCEPTION);
+
+?>
+```
 
 ## Code Sample
 
 This code sample demonstrates how to compress all `.jpg` files from a directory named `images/` and replace original files by their compressed version.
 
-    // Processing may take a while
-    set_time_limit(0);
+```php
+<?php
 
-    // Include Smush.it PHP Library
-    require 'SmushIt.class.php';
+// Processing may take a while
+set_time_limit(0);
 
-    // Get all .jpg files from images/ directory
-    $files = glob(__DIR__ . '/images/*.jpg');
+// Include Smush.it PHP Library
+require 'SmushIt.class.php';
 
-    // Make batches of 3 images
-    $files = array_chunk($files, 3);
+// Get all .jpg files from images/ directory
+$files = glob(__DIR__ . '/images/*.jpg');
 
-    // Take a batch of three files
-    foreach($files as $batch) {
-        try {
-        	// Compress the batch
-            $smushit = new SmushIt($batch);
-            // And finaly, replace original files by their compressed version
-            foreach($smushit->get() as $file) {
-                // Sometimes, Smush.it convert files. We don't want that to happen.
-                $src = pathinfo($file->source, PATHINFO_EXTENSION);
-                $dst = pathinfo($file->destination, PATHINFO_EXTENSION);
-                if ($src == $dst AND copy($file->destination, $file->source)) {
-                    // Success !
-                }
+// Make batches of 3 images
+$files = array_chunk($files, 3);
+
+// Take a batch of three files
+foreach($files as $batch) {
+    try {
+        // Compress the batch
+        $smushit = new SmushIt($batch);
+        // And finaly, replace original files by their compressed version
+        foreach($smushit->get() as $file) {
+            // Sometimes, Smush.it convert files. We don't want that to happen.
+            $src = pathinfo($file->source, PATHINFO_EXTENSION);
+            $dst = pathinfo($file->destination, PATHINFO_EXTENSION);
+            if ($src == $dst AND copy($file->destination, $file->source)) {
+                // Success !
             }
-        } catch(Exception $e) {
-            continue;
         }
+    } catch(Exception $e) {
+        continue;
     }
+}
+
+?>
+```
 
 ## License
 
