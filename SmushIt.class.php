@@ -138,6 +138,23 @@ class SmushIt
 	}
 
 	/**
+	 * Sometimes, Yahoo! Smush.it converts files (from gif to png, jpg to png)
+	 * during compression process. This function check for this case, based on
+	 * source and destination extensions.
+	 * @access public
+	 * @return bool
+	 * @throws LogicException
+	 */
+	public function hasBeenConverted()
+	{
+		if ($this->hasFlag(self::THROW_EXCEPTION) AND (empty($this->source) OR empty($this->destination))) {
+			throw new LogicException('Can\'t compare extensions: source or destination is empty');
+		}
+
+		return mb_strtolower(pathinfo($this->source, PATHINFO_EXTENSION)) !== mb_strtolower(pathinfo($this->destination, PATHINFO_EXTENSION));
+	}
+
+	/**
 	 * Clean the $sources parameter from SmushIt::__construct()
 	 * (flatten array and remove non-string values)
 	 * @access private
